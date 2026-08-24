@@ -1,0 +1,28 @@
+# Byte-compiled / Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+venv/
+env/
+ENV/
+.env
+
+# Build / Distribution
+build/
+devel/
+dist/
+downloads/
+eggs/
+.eggs/
+*.egg-info/
+*.egg
+
+# IDEs & Editors
+.vscode/
+.idea/
+*.swp
+
+# Testing
+.pytest_cache/
