@@ -29,7 +29,7 @@ pip install moldpy
 moldpy --version
 ```
 
-### 🚀 Guía de Uso Paso a Paso
+## 🚀 Guía de Uso Paso a Paso
 
 - **Iniciar el Creador de Proyectos**
   Abre la terminal en la carpeta donde quieras crear tu nuevo proyecto y ejecuta:
@@ -49,19 +49,19 @@ MoldPy te guiará con un menú interactivo:
     3. Autor: Tu nombre o marca personal.
     4. Git: Opción para incluir un .gitignore preconfigurado.
     5. Entorno Virtual (venv): Opción para crear el entorno e instalar dependencias automáticamente.
-    🛠️ Comandos Disponibles
-    Comando
-    Descripción
 
-       ```bash
-        moldpy create : Inicia el asistente interactivo de creación.
-        moldpy --version o moldpy -v: Muestra la versión actual instalada de MoldPy.
-        moldpy --help: Muestra la ayuda general y opciones disponibles.
+## 🛠️ Comandos Disponibles
 
- ```
+| Comando | Descripción |
+| :--- | :--- |
+| `moldpy create` | Inicia el asistente interactivo de creación. |
+| `moldpy --version` o `moldpy -v` | Muestra la versión actual instalada de MoldPy. |
+| `moldpy --help` | Muestra la ayuda general y opciones disponibles. |
 
-### 💻 Guía Rápida: Cómo Ejecutar el Proyecto Creado
+## 💻 Guía Rápida: Cómo Ejecutar el Proyecto Creado
+
 **Una vez que MoldPy termine de crear tu proyecto, sigue estos pasos para empezar a trabajar:**
+
 - **Entra a la carpeta generada**:
 
 ```bash
@@ -69,6 +69,7 @@ cd nombre-de-tu-proyecto
 ```
 
 - **Activa el Entorno Virtual (venv):**
+
 Windows (PowerShell):
     PowerShell
 
