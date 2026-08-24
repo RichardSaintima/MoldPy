@@ -21,58 +21,73 @@ Instala **MoldPy** directamente desde PyPI usando `pip`:
 
 ```bash
 pip install moldpy
+```
 
+### Para verificar que se instaló correctamente
 
-Para verificar que se instaló correctamente:
-
+```bash
 moldpy --version
+```
 
+### 🚀 Guía de Uso Paso a Paso
 
-🚀 Guía de Uso Paso a Paso
-1. Iniciar el Creador de Proyectos
-Abre la terminal en la carpeta donde quieras crear tu nuevo proyecto y ejecuta:
+- **Iniciar el Creador de Proyectos**
+  Abre la terminal en la carpeta donde quieras crear tu nuevo proyecto y ejecuta:
 
+```bash
 moldpy create
+```
 
-
-2. Responder a las Preguntas del Asistente
+- **Responder a las Preguntas del Asistente**
 MoldPy te guiará con un menú interactivo:
-    Tipo de proyecto: Elige entre:
+    1. Tipo de proyecto: Elige entre:
         ⚡ API REST en FastAPI (Estructura de API con servidor Uvicorn).
         📊 Dashboard con Streamlit (Interfaz web interactiva para datos).
         📈 Data Science (Pandas & Jupyter) (Estructura para datos con notebooks y carpetas de datos).
         🛠️ Script de Automatización (Base limpia para automatización con .env).
-    Nombre de la carpeta: El nombre del directorio donde se creará el código.
-    Autor: Tu nombre o marca personal.
-    Git: Opción para incluir un .gitignore preconfigurado.
-    Entorno Virtual (venv): Opción para crear el entorno e instalar dependencias automáticamente.
+    2. Nombre de la carpeta: El nombre del directorio donde se creará el código.
+    3. Autor: Tu nombre o marca personal.
+    4. Git: Opción para incluir un .gitignore preconfigurado.
+    5. Entorno Virtual (venv): Opción para crear el entorno e instalar dependencias automáticamente.
     🛠️ Comandos Disponibles
     Comando
     Descripción
-        moldpy create: Inicia el asistente interactivo de creación.
+
+       ```bash
+        moldpy create : Inicia el asistente interactivo de creación.
         moldpy --version o moldpy -v: Muestra la versión actual instalada de MoldPy.
         moldpy --help: Muestra la ayuda general y opciones disponibles.
 
-💻 Guía Rápida: Cómo Ejecutar el Proyecto Creado
-Una vez que MoldPy termine de crear tu proyecto, sigue estos pasos para empezar a trabajar:
-1. Entra a la carpeta generada:
+ ```
 
+### 💻 Guía Rápida: Cómo Ejecutar el Proyecto Creado
+**Una vez que MoldPy termine de crear tu proyecto, sigue estos pasos para empezar a trabajar:**
+- **Entra a la carpeta generada**:
+
+```bash
 cd nombre-de-tu-proyecto
+```
 
-
-2. Activa el Entorno Virtual (venv):
+- **Activa el Entorno Virtual (venv):**
 Windows (PowerShell):
     PowerShell
-.\venv\Scripts\activate
 
+```bash
+.\venv\Scripts\activate
+```
 
 Linux / macOS:
 
+```bash
 source venv/bin/activate
+```
 
+1. **Ejecutar según el tipo de proyecto:**
 
-3. Ejecutar según el tipo de proyecto:
+   ```text
     FastAPI: uvicorn app.main:app --reload
     Streamlit: streamlit run app.py
     Data Science: jupyter lab
     Script: python src/main.py
+    
+    ```
