@@ -5,6 +5,7 @@ __pycache__/
 
 # Environments
 venv/
+.venv/
 env/
 ENV/
 .env
@@ -26,3 +27,6 @@ eggs/
 
 # Testing
 .pytest_cache/
+
+# mi-proyecto
+mi-proyecto-*

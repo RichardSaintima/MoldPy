@@ -14,7 +14,7 @@ import inquirer
 console = Console()
 app = typer.Typer()
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 def version_callback(value: bool):
     """Muestra la versión de MoldPy y sale."""

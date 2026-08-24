@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "moldpy"
-version = "0.2.0" # O 0.2.0 si agregan muchas funciones nuevas
+version = "0.2.1"
 description = "Generador de plantillas y estructuras de proyectos en Python"
 readme = "README.md"
 license = { text = "MIT" }
@@ -20,3 +20,4 @@ moldpy = "mi_cli.main:app"
 
 [tool.setuptools.packages.find]
 where = ["."]
+exclude = ["venv*", "proj-*", "tests*"]
