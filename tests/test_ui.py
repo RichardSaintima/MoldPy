@@ -12,4 +12,4 @@ def test_version_flag():
     # Verifica que el código de salida sea 0 (éxito) y contenga la versión
     assert result.exit_code == 0
     assert "MoldPy" in result.stdout
-    assert "0.2.1" in result.stdout
+    assert "0.2.2" in result.stdout

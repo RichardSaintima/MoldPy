@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "moldpy"
-version = "0.2.1"
+version = "0.2.2"
 description = "Generador de plantillas y estructuras de proyectos en Python"
 readme = "README.md"
 license = { text = "MIT" }

@@ -1,99 +1,145 @@
-import os
+from pathlib import Path
+from textwrap import dedent
 
-
-def crear_db_files(app_dir: str, routers_dir: str):
-    """Genera la capa de datos Serverless utilizando el SDK oficial de Supabase."""
+def crear_db_files_supabase(app_dir: str, routers_dir: str):
+    """Genera la capa de datos Supabase con cliente seguro e inyección de dependencias."""
+    app_path = Path(app_dir)
+    routers_path = Path(routers_dir)
+    models_path = app_path / "models"
+    models_path.mkdir(parents=True, exist_ok=True)
 
     # 1. app/database.py
-    with open(os.path.join(app_dir, "database.py"), "w", encoding="utf-8") as f:
-        f.write(
-            "from supabase import create_client, Client\n"
-            "from app.config import SUPABASE_URL, SUPABASE_KEY\n\n"
-            "supabase: Client = None\n\n"
-            "def init_db():\n"
-            "    global supabase\n"
-            "    if not SUPABASE_URL or not SUPABASE_KEY:\n"
-            '        raise ValueError("SUPABASE_URL y SUPABASE_KEY deben estar configuradas en el archivo .env")\n'
-            "    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)\n"
-        )
+    db_content = dedent('''\
+        import logging
+        from supabase import create_client, Client
+        from fastapi import HTTPException, status
+        from app.config import SUPABASE_URL, SUPABASE_KEY
 
-    # 2. app/models/
-    models_dir = os.path.join(app_dir, "models")
-    os.makedirs(models_dir, exist_ok=True)
+        logging.basicConfig(level=logging.INFO)
+        logger = logging.getLogger(__name__)
 
-    # app/models/item.py (Modelos Pydantic)
-    with open(os.path.join(models_dir, "item.py"), "w", encoding="utf-8") as f:
-        f.write(
-            "from typing import Optional\n"
-            "from pydantic import BaseModel, Field\n\n"
-            "class ItemBase(BaseModel):\n"
-            "    title: str = Field(..., min_length=1, max_length=100)\n"
-            "    description: Optional[str] = None\n"
-            "    price: float = Field(..., gt=0)\n\n"
-            "class ItemCreate(ItemBase):\n"
-            "    pass\n\n"
-            "class ItemUpdate(BaseModel):\n"
-            "    title: Optional[str] = Field(None, min_length=1, max_length=100)\n"
-            "    description: Optional[str] = None\n"
-            "    price: Optional[float] = Field(None, gt=0)\n\n"
-            "class ItemResponse(ItemBase):\n"
-            "    id: int\n"
-            "    created_at: Optional[str] = None\n"
-        )
+        db: Client = None
+
+        def init_db():
+            global db
+            if not SUPABASE_URL or not SUPABASE_KEY:
+                logger.warning("Variables SUPABASE_URL o SUPABASE_KEY no configuradas en el entorno.")
+                db = None
+                return
+
+            try:
+                db = create_client(SUPABASE_URL, SUPABASE_KEY)
+                logger.info("Conexión con Supabase inicializada correctamente.")
+            except Exception as e:
+                logger.error(f"Fallo al conectar con Supabase: {e}")
+                db = None
+
+        def get_db() -> Client:
+            """Valida que la conexión a Supabase esté activa antes de procesar una petición HTTP."""
+            if db is None:
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="El servicio de Supabase no está configurado. Revisa las variables en el archivo .env"
+                )
+            return db
+    ''')
+    (app_path / "database.py").write_text(db_content, encoding="utf-8")
+
+    # 2. app/models/item.py
+    item_model_content = dedent('''\
+        from typing import Optional
+        from pydantic import BaseModel, Field
+
+        class ItemBase(BaseModel):
+            title: str = Field(..., min_length=1, max_length=100)
+            description: Optional[str] = None
+            price: float = Field(..., gt=0)
+
+        class ItemCreate(ItemBase):
+            pass
+
+        class ItemUpdate(BaseModel):
+            title: Optional[str] = Field(None, min_length=1, max_length=100)
+            description: Optional[str] = None
+            price: Optional[float] = Field(None, gt=0)
+
+        class ItemResponse(ItemBase):
+            id: int | str
+            created_at: Optional[str] = None
+            updated_at: Optional[str] = None
+    ''')
+    (models_path / "item.py").write_text(item_model_content, encoding="utf-8")
 
     # app/models/__init__.py
-    with open(
-        os.path.join(models_dir, "__init__.py"), "w", encoding="utf-8"
-    ) as f:
-        f.write(
-            "import importlib\n"
-            "import pkgutil\n\n"
-            "for _, module_name, _ in pkgutil.iter_modules(__path__):\n"
-            '    if not module_name.startswith("_"):\n'
-            '        importlib.import_module(f"{__name__}.{module_name}")\n'
-        )
+    models_init_content = dedent('''\
+        import importlib
+        import pkgutil
 
-    # 3. app/routers/items.py (CRUD con SDK de Supabase)
-    with open(os.path.join(routers_dir, "items.py"), "w", encoding="utf-8") as f:
-        f.write(
-            "from typing import List\n"
-            "from fastapi import APIRouter, HTTPException, Query, status\n"
-            "from app.database import supabase\n"
-            "from app.models.item import ItemCreate, ItemUpdate, ItemResponse\n\n"
-            'router = APIRouter(prefix="/items", tags=["Items"])\n'
-            'TABLE_NAME = "items"\n\n'
-            '@router.post("/", response_model=ItemResponse, status_code=status.HTTP_201_CREATED)\n'
-            "def create_item(item: ItemCreate):\n"
-            "    response = supabase.table(TABLE_NAME).insert(item.model_dump()).execute()\n"
-            "    if not response.data:\n"
-            '        raise HTTPException(status_code=400, detail="Error al crear el registro en Supabase")\n'
-            "    return response.data[0]\n\n"
-            '@router.get("/", response_model=List[ItemResponse])\n'
-            "def read_items(\n"
-            "    limit: int = Query(default=20, le=100, ge=1),\n"
-            "    offset: int = Query(default=0, ge=0)\n"
-            "):\n"
-            "    response = supabase.table(TABLE_NAME).select(\"*\").range(offset, offset + limit - 1).execute()\n"
-            "    return response.data\n\n"
-            '@router.get("/{item_id}", response_model=ItemResponse)\n'
-            "def read_item(item_id: int):\n"
-            "    response = supabase.table(TABLE_NAME).select(\"*\").eq(\"id\", item_id).execute()\n"
-            "    if not response.data:\n"
-            '        raise HTTPException(status_code=404, detail="Item no encontrado")\n'
-            "    return response.data[0]\n\n"
-            '@router.patch("/{item_id}", response_model=ItemResponse)\n'
-            "def update_item(item_id: int, item_update: ItemUpdate):\n"
-            "    update_data = {k: v for k, v in item_update.model_dump().items() if v is not None}\n"
-            "    if not update_data:\n"
-            '        raise HTTPException(status_code=400, detail="No hay campos para actualizar")\n'
-            "    response = supabase.table(TABLE_NAME).update(update_data).eq(\"id\", item_id).execute()\n"
-            "    if not response.data:\n"
-            '        raise HTTPException(status_code=404, detail="Item no encontrado")\n'
-            "    return response.data[0]\n\n"
-            '@router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)\n'
-            "def delete_item(item_id: int):\n"
-            "    response = supabase.table(TABLE_NAME).delete().eq(\"id\", item_id).execute()\n"
-            "    if not response.data:\n"
-            '        raise HTTPException(status_code=404, detail="Item no encontrado")\n'
-            "    return None\n"
-        )
+        for _, module_name, _ in pkgutil.iter_modules(__path__):
+            if not module_name.startswith("_"):
+                importlib.import_module(f"{__name__}.{module_name}")
+    ''')
+    (models_path / "__init__.py").write_text(models_init_content, encoding="utf-8")
+
+    # 3. app/routers/items.py (Operaciones CRUD nativas de Supabase)
+    router_content = dedent('''\
+        from typing import List
+        from datetime import datetime, timezone
+        from fastapi import APIRouter, HTTPException, Query, status, Depends
+        from supabase import Client
+        from app.database import get_db
+        from app.models.item import ItemCreate, ItemUpdate, ItemResponse
+
+        router = APIRouter(prefix="/items", tags=["Items"])
+        TABLE_NAME = "items"
+
+        @router.post("/", response_model=ItemResponse, status_code=status.HTTP_201_CREATED)
+        def create_item(item: ItemCreate, db: Client = Depends(get_db)):
+            now = datetime.now(timezone.utc).isoformat()
+            data = item.model_dump()
+            data["created_at"] = now
+            data["updated_at"] = now
+            
+            res = db.table(TABLE_NAME).insert(data).execute()
+            if not res.data:
+                raise HTTPException(status_code=400, detail="Error al crear el elemento en Supabase")
+            return res.data[0]
+
+        @router.get("/", response_model=List[ItemResponse])
+        def read_items(
+            limit: int = Query(default=20, le=100, ge=1),
+            offset: int = Query(default=0, ge=0),
+            db: Client = Depends(get_db)
+        ):
+            # Paginación usando range() en Supabase
+            res = db.table(TABLE_NAME).select("*").range(offset, offset + limit - 1).execute()
+            return res.data
+
+        @router.get("/{item_id}", response_model=ItemResponse)
+        def read_item(item_id: str, db: Client = Depends(get_db)):
+            res = db.table(TABLE_NAME).select("*").eq("id", item_id).execute()
+            if not res.data:
+                raise HTTPException(status_code=404, detail="Item no encontrado")
+            return res.data[0]
+
+        @router.patch("/{item_id}", response_model=ItemResponse)
+        def update_item(item_id: str, item_update: ItemUpdate, db: Client = Depends(get_db)):
+            update_data = {k: v for k, v in item_update.model_dump().items() if v is not None}
+            if update_data:
+                update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+                res = db.table(TABLE_NAME).update(update_data).eq("id", item_id).execute()
+                if not res.data:
+                    raise HTTPException(status_code=404, detail="Item no encontrado")
+                return res.data[0]
+            
+            # Si no hay datos que actualizar, retornamos el estado actual
+            return read_item(item_id, db)
+
+        @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+        def delete_item(item_id: str, db: Client = Depends(get_db)):
+            res = db.table(TABLE_NAME).delete().eq("id", item_id).execute()
+            if not res.data:
+                raise HTTPException(status_code=404, detail="Item no encontrado")
+            return None
+    ''')
+    (routers_path / "items.py").write_text(router_content, encoding="utf-8")

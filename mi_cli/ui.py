@@ -35,10 +35,7 @@ def obtener_respuestas_usuario():
             choices=[
                 'API REST en FastAPI (Básica)',
                 'API REST en FastAPI + SQLModel (SQL)',
-                'API REST en FastAPI + Backend Serverless',
-                'Dashboard con Streamlit',
-                'Data Science (Pandas & Jupyter)',
-                'Script de Automatización / CLI'
+                'API REST en FastAPI + Backend Serverless'
             ]
         ),
         inquirer.Text('nombre', message="¿Cómo se llamará el proyecto?", default="mi_proyecto"),

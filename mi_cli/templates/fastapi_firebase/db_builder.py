@@ -1,144 +1,182 @@
-import os
-
+from pathlib import Path
+from textwrap import dedent
 
 def crear_db_files(app_dir: str, routers_dir: str):
-    """Genera la capa de datos NoSQL Serverless con Firebase Admin SDK mejorado."""
+    """Genera la capa de datos NoSQL Serverless con Firebase Admin SDK mejorado y manejo defensivo de errores."""
+    app_path = Path(app_dir)
+    routers_path = Path(routers_dir)
+    models_path = app_path / "models"
+    models_path.mkdir(parents=True, exist_ok=True)
 
-    # 1. Generación de app/database.py con soporte para JSON y Variables de Entorno
-    with open(os.path.join(app_dir, "database.py"), "w", encoding="utf-8") as f:
-        f.write(
-            "import os\n"
-            "import json\n"
-            "import firebase_admin\n"
-            "from firebase_admin import credentials, firestore\n"
-            "from app.config import FIREBASE_CREDENTIALS_PATH\n\n"
-            "db = None\n\n"
-            "def init_db():\n"
-            "    global db\n"
-            "    if not firebase_admin._apps:\n"
-            "        # 1. Cargar archivo JSON local si existe (Desarrollo local)\n"
-            "        if os.path.exists(FIREBASE_CREDENTIALS_PATH):\n"
-            "            cred = credentials.Certificate(FIREBASE_CREDENTIALS_PATH)\n"
-            "            firebase_admin.initialize_app(cred)\n"
-            "        # 2. Cargar desde Variables de Entorno (Producción / Nube)\n"
-            '        elif os.getenv("FIREBASE_PRIVATE_KEY"):\n'
-            '            private_key = os.getenv("FIREBASE_PRIVATE_KEY").replace("\\\\n", "\\n")\n'
-            "            cred_dict = {\n"
-            '                "type": "service_account",\n'
-            '                "project_id": os.getenv("FIREBASE_PROJECT_ID"),\n'
-            '                "private_key_id": os.getenv("FIREBASE_PRIVATE_KEY_ID"),\n'
-            '                "private_key": private_key,\n'
-            '                "client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),\n'
-            '                "client_id": os.getenv("FIREBASE_CLIENT_ID"),\n'
-            '                "auth_uri": "https://accounts.google.com/o/oauth2/auth",\n'
-            '                "token_uri": "https://oauth2.googleapis.com/token",\n'
-            "            }\n"
-            "            cred = credentials.Certificate(cred_dict)\n"
-            "            firebase_admin.initialize_app(cred)\n"
-            "        # 3. Fallback: GCP ADC o Emuladores\n"
-            "        else:\n"
-            "            firebase_admin.initialize_app()\n\n"
-            "    db = firestore.client()\n"
-        )
+    # 1. app/database.py con inicialización segura e inyección de dependencia get_db
+    db_content = dedent('''\
+        import os
+        import logging
+        import firebase_admin
+        from firebase_admin import credentials, firestore
+        from fastapi import HTTPException, status
+        from app.config import FIREBASE_CREDENTIALS_PATH
 
-    # 2. Crear app/models/
-    models_dir = os.path.join(app_dir, "models")
-    os.makedirs(models_dir, exist_ok=True)
+        logging.basicConfig(level=logging.INFO)
+        logger = logging.getLogger(__name__)
 
-    # app/models/item.py con marcas de tiempo (timestamps)
-    with open(os.path.join(models_dir, "item.py"), "w", encoding="utf-8") as f:
-        f.write(
-            "from typing import Optional\n"
-            "from pydantic import BaseModel, Field\n"
-            "from datetime import datetime\n\n"
-            "class ItemBase(BaseModel):\n"
-            "    title: str = Field(..., min_length=1, max_length=100)\n"
-            "    description: Optional[str] = None\n"
-            "    price: float = Field(..., gt=0)\n\n"
-            "class ItemCreate(ItemBase):\n"
-            "    pass\n\n"
-            "class ItemUpdate(BaseModel):\n"
-            "    title: Optional[str] = Field(None, min_length=1, max_length=100)\n"
-            "    description: Optional[str] = None\n"
-            "    price: Optional[float] = Field(None, gt=0)\n\n"
-            "class ItemResponse(ItemBase):\n"
-            "    id: str\n"
-            "    created_at: Optional[str] = None\n"
-            "    updated_at: Optional[str] = None\n"
-        )
+        db = None
+
+        def init_db():
+            global db
+            if firebase_admin._apps:
+                db = firestore.client()
+                return
+
+            try:
+                # 1. Intentar cargar el archivo JSON local
+                if os.path.exists(FIREBASE_CREDENTIALS_PATH):
+                    cred = credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
+                    firebase_admin.initialize_app(cred)
+                    logger.info("Firebase inicializado mediante archivo de credenciales local.")
+                
+                # 2. Intentar cargar mediante Variables de Entorno de Producción
+                elif os.getenv("FIREBASE_PRIVATE_KEY"):
+                    private_key = os.getenv("FIREBASE_PRIVATE_KEY").replace("\\\\n", "\\n")
+                    cred_dict = {
+                        "type": "service_account",
+                        "project_id": os.getenv("FIREBASE_PROJECT_ID"),
+                        "private_key_id": os.getenv("FIREBASE_PRIVATE_KEY_ID"),
+                        "private_key": private_key,
+                        "client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),
+                        "client_id": os.getenv("FIREBASE_CLIENT_ID"),
+                        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                        "token_uri": "https://oauth2.googleapis.com/token",
+                    }
+                    cred = credentials.Certificate(cred_dict)
+                    firebase_admin.initialize_app(cred)
+                    logger.info("Firebase inicializado mediante variables de entorno.")
+
+                # 3. Intentar credenciales implícitas de Google Cloud Platform (ADC)
+                else:
+                    firebase_admin.initialize_app()
+                    logger.info("Firebase inicializado mediante Google Application Default Credentials.")
+
+                db = firestore.client()
+
+            except Exception as e:
+                logger.error(f"Fallo al inicializar Firebase Firestore: {e}")
+                db = None
+
+        def get_db():
+            """Inyección de dependencia para asegurar que la conexión esté activa antes de procesar una petición."""
+            if db is None:
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="El servicio de base de datos no está disponible. Revisa las credenciales de Firebase en el archivo .env"
+                )
+            return db
+    ''')
+    (app_path / "database.py").write_text(db_content, encoding="utf-8")
+
+    # 2. app/models/item.py
+    item_model_content = dedent('''\
+        from typing import Optional
+        from pydantic import BaseModel, Field
+
+        class ItemBase(BaseModel):
+            title: str = Field(..., min_length=1, max_length=100)
+            description: Optional[str] = None
+            price: float = Field(..., gt=0)
+
+        class ItemCreate(ItemBase):
+            pass
+
+        class ItemUpdate(BaseModel):
+            title: Optional[str] = Field(None, min_length=1, max_length=100)
+            description: Optional[str] = None
+            price: Optional[float] = Field(None, gt=0)
+
+        class ItemResponse(ItemBase):
+            id: str
+            created_at: Optional[str] = None
+            updated_at: Optional[str] = None
+    ''')
+    (models_path / "item.py").write_text(item_model_content, encoding="utf-8")
 
     # app/models/__init__.py
-    with open(
-        os.path.join(models_dir, "__init__.py"), "w", encoding="utf-8"
-    ) as f:
-        f.write(
-            "import importlib\n"
-            "import pkgutil\n\n"
-            "for _, module_name, _ in pkgutil.iter_modules(__path__):\n"
-            '    if not module_name.startswith("_"):\n'
-            '        importlib.import_module(f"{__name__}.{module_name}")\n'
-        )
+    models_init_content = dedent('''\
+        import importlib
+        import pkgutil
 
-    # 3. app/routers/items.py con Paginación y Marcas de Tiempo
-    with open(os.path.join(routers_dir, "items.py"), "w", encoding="utf-8") as f:
-        f.write(
-            "from typing import List, Optional\n"
-            "from datetime import datetime, timezone\n"
-            "from fastapi import APIRouter, HTTPException, Query, status\n"
-            "from google.cloud.firestore_v1 import Query as FirestoreQuery\n"
-            "from app.database import db\n"
-            "from app.models.item import ItemCreate, ItemUpdate, ItemResponse\n\n"
-            'router = APIRouter(prefix="/items", tags=["Items"])\n'
-            'COLLECTION_NAME = "items"\n\n'
-            '@router.post("/", response_model=ItemResponse, status_code=status.HTTP_201_CREATED)\n'
-            "def create_item(item: ItemCreate):\n"
-            "    doc_ref = db.collection(COLLECTION_NAME).document()\n"
-            "    now = datetime.now(timezone.utc).isoformat()\n"
-            "    data = item.model_dump()\n"
-            '    data["created_at"] = now\n'
-            '    data["updated_at"] = now\n'
-            "    doc_ref.set(data)\n"
-            '    data["id"] = doc_ref.id\n'
-            "    return data\n\n"
-            '@router.get("/", response_model=List[ItemResponse])\n'
-            "def read_items(\n"
-            "    limit: int = Query(default=20, le=100, ge=1),\n"
-            "    offset: int = Query(default=0, ge=0)\n"
-            "):\n"
-            "    # Consulta optimizada con paginación en Firestore\n"
-            "    query = db.collection(COLLECTION_NAME).limit(limit).offset(offset)\n"
-            "    docs = query.stream()\n"
-            "    items = []\n"
-            "    for doc in docs:\n"
-            "        data = doc.to_dict()\n"
-            '        data["id"] = doc.id\n'
-            "        items.append(data)\n"
-            "    return items\n\n"
-            '@router.get("/{item_id}", response_model=ItemResponse)\n'
-            "def read_item(item_id: str):\n"
-            "    doc = db.collection(COLLECTION_NAME).document(item_id).get()\n"
-            "    if not doc.exists:\n"
-            '        raise HTTPException(status_code=404, detail="Item no encontrado")\n'
-            "    data = doc.to_dict()\n"
-            '    data["id"] = doc.id\n'
-            "    return data\n\n"
-            '@router.patch("/{item_id}", response_model=ItemResponse)\n'
-            "def update_item(item_id: str, item_update: ItemUpdate):\n"
-            "    doc_ref = db.collection(COLLECTION_NAME).document(item_id)\n"
-            "    if not doc_ref.get().exists:\n"
-            '        raise HTTPException(status_code=404, detail="Item no encontrado")\n'
-            "    update_data = {k: v for k, v in item_update.model_dump().items() if v is not None}\n"
-            "    if update_data:\n"
-            '        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()\n'
-            "        doc_ref.update(update_data)\n"
-            "    updated_doc = doc_ref.get().to_dict()\n"
-            '    updated_doc["id"] = doc_ref.id\n'
-            "    return updated_doc\n\n"
-            '@router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)\n'
-            "def delete_item(item_id: str):\n"
-            "    doc_ref = db.collection(COLLECTION_NAME).document(item_id)\n"
-            "    if not doc_ref.get().exists:\n"
-            '        raise HTTPException(status_code=404, detail="Item no encontrado")\n'
-            "    doc_ref.delete()\n"
-            "    return None\n"
-        )
+        for _, module_name, _ in pkgutil.iter_modules(__path__):
+            if not module_name.startswith("_"):
+                importlib.import_module(f"{__name__}.{module_name}")
+    ''')
+    (models_path / "__init__.py").write_text(models_init_content, encoding="utf-8")
+
+    # 3. app/routers/items.py con uso de Depends(get_db)
+    router_content = dedent('''\
+        from typing import List
+        from datetime import datetime, timezone
+        from fastapi import APIRouter, HTTPException, Query, status, Depends
+        from app.database import get_db
+        from app.models.item import ItemCreate, ItemUpdate, ItemResponse
+
+        router = APIRouter(prefix="/items", tags=["Items"])
+        COLLECTION_NAME = "items"
+
+        @router.post("/", response_model=ItemResponse, status_code=status.HTTP_201_CREATED)
+        def create_item(item: ItemCreate, db=Depends(get_db)):
+            doc_ref = db.collection(COLLECTION_NAME).document()
+            now = datetime.now(timezone.utc).isoformat()
+            data = item.model_dump()
+            data["created_at"] = now
+            data["updated_at"] = now
+            doc_ref.set(data)
+            data["id"] = doc_ref.id
+            return data
+
+        @router.get("/", response_model=List[ItemResponse])
+        def read_items(
+            limit: int = Query(default=20, le=100, ge=1),
+            offset: int = Query(default=0, ge=0),
+            db=Depends(get_db)
+        ):
+            query = db.collection(COLLECTION_NAME).limit(limit).offset(offset)
+            docs = query.stream()
+            items = []
+            for doc in docs:
+                data = doc.to_dict()
+                data["id"] = doc.id
+                items.append(data)
+            return items
+
+        @router.get("/{item_id}", response_model=ItemResponse)
+        def read_item(item_id: str, db=Depends(get_db)):
+            doc = db.collection(COLLECTION_NAME).document(item_id).get()
+            if not doc.exists:
+                raise HTTPException(status_code=404, detail="Item no encontrado")
+            data = doc.to_dict()
+            data["id"] = doc.id
+            return data
+
+        @router.patch("/{item_id}", response_model=ItemResponse)
+        def update_item(item_id: str, item_update: ItemUpdate, db=Depends(get_db)):
+            doc_ref = db.collection(COLLECTION_NAME).document(item_id)
+            if not doc_ref.get().exists:
+                raise HTTPException(status_code=404, detail="Item no encontrado")
+            
+            update_data = {k: v for k, v in item_update.model_dump().items() if v is not None}
+            if update_data:
+                update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+                doc_ref.update(update_data)
+            
+            updated_doc = doc_ref.get().to_dict()
+            updated_doc["id"] = doc_ref.id
+            return updated_doc
+
+        @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+        def delete_item(item_id: str, db=Depends(get_db)):
+            doc_ref = db.collection(COLLECTION_NAME).document(item_id)
+            if not doc_ref.get().exists:
+                raise HTTPException(status_code=404, detail="Item no encontrado")
+            doc_ref.delete()
+            return None
+    ''')
+    (routers_path / "items.py").write_text(router_content, encoding="utf-8")

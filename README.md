@@ -2,13 +2,13 @@
 
 > Scaffolder e inicializador interactivo de proyectos en Python.
 
-**MoldPy** es una herramienta de línea de comandos (CLI) diseñada para maquetar la estructura inicial de proyectos en Python (APIs en FastAPI, Dashboards en Streamlit, Data Science y Scripts de automatización) con configuración automática de entornos virtuales (`venv`), `.gitignore` y dependencias.
+**MoldPy** es una herramienta de línea de comandos (CLI) diseñada para maquetar la estructura inicial de proyectos en Python (APIs en FastAPI) con configuración automática de entornos virtuales (`venv`), `.gitignore` y dependencias.
 
 ---
 
 ## 🎨 Características
 
-- 🚀 **Plantillas Listas:** Genera proyectos completos para **FastAPI**, **Streamlit**, **Data Science** o **Scripts**.
+- 🚀 **Plantillas Listas:** Genera proyectos completos para **FastAPI**, **FastAPI + SQL** o **FastAPI + NOSQL**.
 - 🛠️ **Entornos Virtuales:** Crea el `venv` e instala las dependencias de `requirements.txt` automáticamente en segundo plano.
 - 📋 **Previsualización Clara:** Tabla interactiva con el resumen de la configuración antes de escribir en disco.
 - 💅 **Interfaz Moderna:** Diseñada con banderas y colores tipo terminal *cyberpunk*.
@@ -26,6 +26,28 @@ Instala `moldpy` como una herramienta global independiente sin necesidad de crea
 ```bash
 pip install pipx
 ```
+
+```bash
+pipx install moldpy
+```
+
+### ¿Qué debes hacer ahora mismo?
+
+**Ejecuta estos dos pasos en tu terminal:**
+
+- Configurar el PATH de pipx (solo se hace una vez):
+
+PowerShell
+
+```bash
+pipx ensurepath
+```
+
+- Cierra tu PowerShell y vuelve a abrirlo.
+
+- Instala tu CLI de forma limpia con pipx:
+
+PowerShell
 
 ```bash
 pipx install moldpy
@@ -74,9 +96,6 @@ moldpy create
 MoldPy te guiará con un menú interactivo:
     1. Tipo de proyecto: Elige entre:
         ⚡ API REST en FastAPI (Estructura de API con servidor Uvicorn).
-        📊 Dashboard con Streamlit (Interfaz web interactiva para datos).
-        📈 Data Science (Pandas & Jupyter) (Estructura para datos con notebooks y carpetas de datos).
-        🛠️ Script de Automatización (Base limpia para automatización con .env).
     2. Nombre de la carpeta: El nombre del directorio donde se creará el código.
     3. Autor: Tu nombre o marca personal.
     4. Entorno Virtual (venv): Opción para crear el entorno e instalar dependencias automáticamente.
@@ -126,4 +145,4 @@ python run.py
 
 - Crea la carpeta de tu nuevo proyecto (por ejemplo: mi-api).
 
-- Genera un venv interno dentro de mi-api/venv exclusivo para las librerías de tu nueva aplicación **(FastAPI, Streamlit, etc.)** e instala sus dependencias automáticamente.
+- Genera un venv interno dentro de mi-api/venv exclusivo para las librerías de tu nueva aplicación **(FastAPI, FastAPI + SQL, FastAPI +  NOSQL.)** e instala sus dependencias automáticamente.

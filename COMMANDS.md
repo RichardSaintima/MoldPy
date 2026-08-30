@@ -93,7 +93,7 @@ git add .
 ## Crear commit de la versión
 
 ```bash
-git commit -m "Release v0.2.1: Modular structure, tests, and CI/CD workflow"
+git commit -m "Release v0.2.2: Modular structure, tests, and CI/CD workflow"
 ```
 
 ## Subir a GitHub
