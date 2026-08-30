@@ -4,15 +4,30 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "moldpy"
-version = "0.2.1"
+version = "0.2.2"
 description = "Generador de plantillas y estructuras de proyectos en Python"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.8"
+
+# Dependencias principales de producción
 dependencies = [
     "typer>=0.9.0",
     "rich>=13.0.0",
     "inquirer>=3.1.0"
+]
+
+# Enlaces útiles que aparecerán en la barra lateral de PyPI
+[project.urls]
+Homepage = "https://github.com/RichardSaintima/MoldPy"
+Repository = "https://github.com/RichardSaintima/MoldPy"
+Issues = "https://github.com/RichardSaintima/MoldPy/issues"
+
+# Dependencias opcionales para desarrollo/pruebas
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0"
 ]
 
 [project.scripts]
@@ -20,4 +35,4 @@ moldpy = "mi_cli.main:app"
 
 [tool.setuptools.packages.find]
 where = ["."]
-exclude = ["venv*", "proj-*", "tests*"]
+exclude = ["venv*", "mi-proyecto*", "tests*"]

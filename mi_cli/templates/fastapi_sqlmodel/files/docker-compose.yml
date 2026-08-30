@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    # Descomentar si usas la base de datos local de postgres definida abajo:
+    # depends_on:
+    #   - db
+
+  # Servicio de PostgreSQL para entornos locales complejos / avanzados
+  # db:
+  #   image: postgres:15-alpine
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgrespassword
+  #     POSTGRES_DB: mi_base_de_datos
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+
+# volumes:
+#   postgres_data:
