@@ -17,10 +17,42 @@
 
 ## 📦 Instalación
 
-Instala **MoldPy** directamente desde PyPI usando `pip`:
+Elige el método de instalación que prefieras:
+
+### Opción A: Con `pipx` (Recomendado para la mayoría)
+
+Instala `moldpy` como una herramienta global independiente sin necesidad de crear entornos virtuales manuales:
 
 ```bash
-pip install moldpy
+pip install pipx
+```
+
+```bash
+pipx install moldpy
+```
+
+### Opción B: Con `pip` (Instalación clásica)
+
+Si prefieres usar `pip` directamente, **debes crear y activar primero tu propio entorno virtual (venv) para evitar problemas de permisos** con el Python del sistema:
+
+### Crea y activa un entorno virtual
+
+- Crear el entorno
+
+```bash
+python -m venv venv
+```
+
+- Activar en Windows (PowerShell)
+
+```bash
+.\venv\Scripts\activate
+```
+
+- Activar en Linux / macOS
+
+```bash
+source venv/bin/activate
 ```
 
 ### Para verificar que se instaló correctamente
@@ -47,8 +79,7 @@ MoldPy te guiará con un menú interactivo:
         🛠️ Script de Automatización (Base limpia para automatización con .env).
     2. Nombre de la carpeta: El nombre del directorio donde se creará el código.
     3. Autor: Tu nombre o marca personal.
-    4. Git: Opción para incluir un .gitignore preconfigurado.
-    5. Entorno Virtual (venv): Opción para crear el entorno e instalar dependencias automáticamente.
+    4. Entorno Virtual (venv): Opción para crear el entorno e instalar dependencias automáticamente.
 
 ## 🛠️ Comandos Disponibles
 
@@ -58,14 +89,14 @@ MoldPy te guiará con un menú interactivo:
 | `moldpy --version` o `moldpy -v` | Muestra la versión actual instalada de MoldPy. |
 | `moldpy --help` | Muestra la ayuda general y opciones disponibles. |
 
-## 💻 Guía Rápida: Cómo Ejecutar el Proyecto Creado
+## 💻 Pasos Finales para Usar tu Proyecto Generado
 
 **Una vez que MoldPy termine de crear tu proyecto, sigue estos pasos para empezar a trabajar:**
 
 - **Entra a la carpeta generada**:
 
 ```bash
-cd nombre-de-tu-proyecto
+cd mi-app
 ```
 
 - **Activa el Entorno Virtual (venv):**
@@ -83,12 +114,16 @@ Linux / macOS:
 source venv/bin/activate
 ```
 
-1. **Ejecutar según el tipo de proyecto:**
+-**Ejecuta tu proyecto**
 
-   ```text
-    FastAPI: uvicorn app.main:app --reload
-    Streamlit: streamlit run app.py
-    Data Science: jupyter lab
-    Script: python src/main.py
-    
-    ```
+```bash
+python run.py
+```
+
+1. ¿Qué hace MoldPy automáticamente por ti?
+
+- Te hace unas preguntas interactivas (tipo de proyecto, nombre, autor, etc.).**
+
+- Crea la carpeta de tu nuevo proyecto (por ejemplo: mi-api).
+
+- Genera un venv interno dentro de mi-api/venv exclusivo para las librerías de tu nueva aplicación **(FastAPI, Streamlit, etc.)** e instala sus dependencias automáticamente.

@@ -1,4 +1,4 @@
-name: Publish to PyPI
+name: Publish MoldPy to PyPI
 
 on:
   release:
@@ -6,21 +6,24 @@ on:
 
 jobs:
   pypi-publish:
-    name: Upload release to PyPI
+    name: Build and publish to PyPI
     runs-on: ubuntu-latest
     permissions:
-      id-token: write  # Requisito obligatorio para Trusted Publishing (OIDC)
+      id-token: write  # Requerido para Trusted Publishers
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
+          python-version: "3.11"
 
       - name: Install build tools
-        run: python -m pip install build
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
 
       - name: Build package
         run: python -m build

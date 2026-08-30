@@ -28,5 +28,5 @@ eggs/
 # Testing
 .pytest_cache/
 
-# mi-proyecto
-mi-proyecto-*
+# mi_proyecto
+mi_proyecto*
